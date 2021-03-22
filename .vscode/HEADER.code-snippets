@@ -1,0 +1,13 @@
+{
+	"Print to console":{
+	"prefix": "HEADER",
+		"body": [
+			"/*",
+			"* Copyright © 2021 Rosonlee. All rights reserved.",
+			"* @author : Rosonlee",
+			"* @date : $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE-$CURRENT_HOUR:$CURRENT_MINUTE",
+			"*/",
+		]
+
+	}
+}
