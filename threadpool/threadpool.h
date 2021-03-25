@@ -12,13 +12,13 @@
 #include <cstdio>
 #include <exception>
 #include <pthread.h>
-#include "locker.h"
+#include "../locker/locker.h"
 
 template <typename T>
-class threadpool{
+class thread_pool{
 public:
-    threadpool(int thread_number = 8, int max_requests = 10000);
-    ~threadpool();
+    thread_pool(int thread_number = 8, int max_requests = 10000);
+    ~thread_pool();
     bool Append(T* request);
 
 private:
@@ -31,11 +31,11 @@ private:
     std::list<T* > m_workqueue_;
     locker m_queuelocker_;
     sem m_queuestat_;
-    bool m_stop_
+    bool m_stop_;
 };
 
 template<typename T>
-threadpool<T>::threadpool(int thread_number, int max_requests) : m_thread_number_(thread_number), m_max_requests_(max_requests), m_stop_(false), m_threads_(nullptr){
+thread_pool<T>::thread_pool(int thread_number, int max_requests) :m_thread_number_(thread_number), m_max_requests_(max_requests), m_stop_(false), m_threads_(nullptr){
     if ((thread_number <= 0) || (max_requests <= 0)){
         throw std::exception();
     }
@@ -45,7 +45,7 @@ threadpool<T>::threadpool(int thread_number, int max_requests) : m_thread_number
     }
     for (int i = 0; i < thread_number; i++){
         printf("create the %dth thread\n", i);
-        if(pthread_create(m_threads_ + i, nullptr, __worker, this) != 0){
+        if(pthread_create(m_threads_ + i, NULL, __Worker, this) != 0){
             delete[] m_threads_;
             throw std::exception();
         }
@@ -57,47 +57,51 @@ threadpool<T>::threadpool(int thread_number, int max_requests) : m_thread_number
 }
 
 template <typename T>
-threadpool< T >::~threadpool(){
+thread_pool< T >::~thread_pool(){
     delete[] m_threads_;
     m_stop_ = true;
 }
 
 template <typename T>
-bool threadpool< T >::Append(T* request){
+bool thread_pool< T >::Append(T* request){
     m_queuelocker_.Lock();
-    if(m_workqueue_.size() > m_max_requests_){
-        m_max_requests_.Unlock();
+    if(m_workqueue_.size() >= m_max_requests_){
+        m_queuelocker_.Unlock();
         return false;
     }
+    printf("Now We have request....\n");
     m_workqueue_.push_back(request);
     m_queuelocker_.Unlock();
-    m_queuestat_.post();
+    m_queuestat_.Post();
     return true;
 }
 
 template<typename T>
-void* threadpool< T >::__Worker(void* arg){
-    thread_pool* pool = (threadpool*) arg;
+void* thread_pool< T >::__Worker(void* arg){
+    thread_pool* pool = (thread_pool*) arg;
     pool->__Run();
     return pool;
 }
 
 template<typename T>
-void threadpool< T >::__Run(){
-    while (!m_stop_){
-        m_queuestat_.wait();
+void thread_pool< T >::__Run(){
+    while (1){
+        printf("Now Processing....\n");
+        m_queuestat_.Wait();
+        printf("Now We Skip wait....\n");
         m_queuelocker_.Lock();
         if (m_workqueue_.empty()){
             m_queuelocker_.Unlock();
             continue;
         }
+        printf("Now we can go.....\n");
         T* request = m_workqueue_.front();
         m_workqueue_.pop_front();
         m_queuelocker_.Unlock();
         if(!request){
             continue;
         }
-        request->process();
+        request->Process();
     }
 }
 #endif // THREADPOOL_H

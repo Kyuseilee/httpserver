@@ -12,6 +12,7 @@
 #include<sys/types.h>
 #include<sys/epoll.h>
 #include<fcntl.h>
+#include<sys/uio.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
@@ -24,7 +25,8 @@
 #include<sys/mman.h>
 #include<stdarg.h>
 #include<errno.h>
-#include "locker.h"
+#include "../locker/locker.h"
+
 
 class http_conn{
 
@@ -38,8 +40,8 @@ enum HTTP_CODE { NO_REQUEST, GET_REQUEST, BAD_REQUEST, NO_RESOURCE, FORBIDDEN_RE
 enum LINE_STATUS { LINE_OK = 0, LINE_BAD, LINE_OPEN };
 
 public:
-    http_conn();
-    ~http_conn();
+    http_conn(){}
+    ~http_conn(){}
 
 public:
     void Init( int sockfd, const sockaddr_in& addr);
@@ -56,13 +58,14 @@ private:
     HTTP_CODE __ParseRequestLine( char* text);
     HTTP_CODE __ParseHeaders( char* text);
     HTTP_CODE __ParseContent( char* text);
+    HTTP_CODE __DoRequest();
     char* __GetLine() { return m_read_buf_ + m_start_line_; }
     LINE_STATUS __ParseLine();
     
     void __Unmap();
-    bool __AddResponse( const char* format);
+    bool __AddResponse( const char* format, ...);
     bool __AddContent( const char* content);
-    bool __AddStatus_Line( int status, const char* title);
+    bool __AddStatusLine( int status, const char* title);
     bool __AddHeaders( int content_length);
     bool __AddContentLength( int content_length);
     bool __AddLinger();
@@ -77,6 +80,9 @@ private:
     int m_sockfd_;
     sockaddr_in m_address_;
     
+    
+    int bytes_have_send ;
+    int bytes_to_send;
     char m_read_buf_[READ_BUFFER_SIZE];
     int m_read_idx_;
     int m_checked_idx_;
@@ -99,7 +105,5 @@ private:
     struct iovec m_iv_[2];
     int m_iv_count_;
 };
-
-
 
 #endif // HTTP_CONN_H

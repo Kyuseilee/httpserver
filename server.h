@@ -23,6 +23,12 @@
 #include <cassert>
 #include <sys/epoll.h>
 #include <sys/sendfile.h>
+#include<unistd.h>
+#include<exception>
+#include<cstdio>
+#include "http/http_conn.h"
+#include "./locker/locker.h"
+#include "./threadpool/threadpool.h"
 
 #define MAX_FD  65535
 #define MAX_EVENT_NUMBER 10000
@@ -37,7 +43,7 @@ public:
     void Init();
     void Listen();
     void Loop();
-    void AddFd(int epollfd, int fd);
+    // void AddFd(int epollfd, int fd);
     int SetNonBlocking(int fd);
     bool Connect2Client();
     void HandleWrite(int fd);
