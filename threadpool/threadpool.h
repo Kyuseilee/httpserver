@@ -69,7 +69,6 @@ bool thread_pool< T >::Append(T* request){
         m_queuelocker_.Unlock();
         return false;
     }
-    printf("Now We have request....\n");
     m_workqueue_.push_back(request);
     m_queuelocker_.Unlock();
     m_queuestat_.Post();
@@ -86,15 +85,12 @@ void* thread_pool< T >::__Worker(void* arg){
 template<typename T>
 void thread_pool< T >::__Run(){
     while (1){
-        printf("Now Processing....\n");
         m_queuestat_.Wait();
-        printf("Now We Skip wait....\n");
         m_queuelocker_.Lock();
         if (m_workqueue_.empty()){
             m_queuelocker_.Unlock();
             continue;
         }
-        printf("Now we can go.....\n");
         T* request = m_workqueue_.front();
         m_workqueue_.pop_front();
         m_queuelocker_.Unlock();

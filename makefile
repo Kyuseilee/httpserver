@@ -7,7 +7,7 @@ else
     CXXFLAGS += -O2
 
 endif
-server: main.cpp  ./http/http_conn.cpp server.cpp 
+server: main.cpp  ./http/http_conn.cpp ./timer/timer.cpp server.cpp 
 	$(CXX) -o server  $^ $(CXXFLAGS) -lpthread 
 INC = -I ./http/http_conn -I ./locker/locker -I ./threadpool/threadpool
 

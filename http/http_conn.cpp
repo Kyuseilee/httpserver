@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:52:02 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-23 21:00:45
+ * @Last Modified time: 2021-03-29 21:38:29
  */
 
 #include "http_conn.h"
@@ -63,9 +63,9 @@ void http_conn::Init(int sockfd, const sockaddr_in& addr){
     m_sockfd_ = sockfd;
     m_address_ = addr;
     AddFd(m_epoll_fd_, m_sockfd_, true);
+    m_user_count_++;
     int reuse = 1;
     setsockopt(m_sockfd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-    m_user_count_++;
     __Init();
 }
 
@@ -226,7 +226,6 @@ http_conn::HTTP_CODE http_conn::__ProcessRead(){
 
     while ((( m_check_state_ == CHECK_STATE_CONTENT) && (line_status == LINE_OK)) || (line_status = __ParseLine()) == LINE_OK){
         text = __GetLine();
-        printf("\n%s\n", text);
         m_start_line_ = m_checked_idx_;
         // printf("got 1 http line: %s\n", text);
         switch (m_check_state_){
@@ -300,7 +299,6 @@ bool http_conn::Write(){
         return true;
     }
     while(1){
-        printf("Here is the same fd %d\n\n", m_sockfd_);
         temp = writev(m_sockfd_, m_iv_, m_iv_count_);
         if (temp <= -1){
             if (errno == EAGAIN){
@@ -310,7 +308,6 @@ bool http_conn::Write(){
             __Unmap();
             return false;
         }
-        printf("Yes, we write %d size of file\n", temp);
         bytes_have_send += temp;
         bytes_to_send -= temp;
         // if( bytes_to_send <= bytes_have_send){
@@ -339,7 +336,6 @@ bool http_conn::Write(){
 
         if (bytes_to_send <= 0)
         {
-            printf("Yes, we have end the write\n", temp);
             __Unmap();
             ModFd(m_epoll_fd_, m_sockfd_, EPOLLIN);
 
@@ -441,10 +437,8 @@ bool http_conn::__ProcessWrite(HTTP_CODE ret){
             if (m_file_stat_.st_size != 0){
                 __AddHeaders(m_file_stat_.st_size);
                 m_iv_[0].iov_base = m_write_buf_;
-                printf("%s\n\n", m_write_buf_);
                 m_iv_[0].iov_len = m_write_idx_;
                 m_iv_[1].iov_base = m_file_address_;
-                printf("%s\n\n", m_file_address_);
                 m_iv_[1].iov_len = m_file_stat_.st_size;
                 m_iv_count_ = 2;
                 bytes_to_send = m_write_idx_ + m_file_stat_.st_size;
@@ -468,7 +462,6 @@ bool http_conn::__ProcessWrite(HTTP_CODE ret){
 }
 
 void http_conn::Process(){
-    printf("Here comes....\n");
     HTTP_CODE read_ret = __ProcessRead();
     if (read_ret == NO_REQUEST){
         printf("No current request\n");
@@ -477,9 +470,6 @@ void http_conn::Process(){
     }
 
     bool write_ret = __ProcessWrite(read_ret);
-    if(write_ret){
-        printf("write ok\n\n");
-    }
     if (! write_ret){
         CloseConn();
     }
