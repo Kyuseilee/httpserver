@@ -87,7 +87,6 @@ bool Server::HandleConnect(){
         LOG_ERROR("%s", "Internal server busy");
         return false;
     }
-    printf("Got connection from %d\n", connfd);
     Timer(connfd, client_address);
     return true;
 }
@@ -228,7 +227,7 @@ void Server::Loop(){
             else if ((sockfd == pipe_fd_[0]) && (events_[i].events & EPOLLIN)){
                 bool flag = HandleSignal(timeout, stop_server);
                 if (!flag){
-                    //Write To log;
+                    LOG_ERROR("%s", "dealclientdata failure");
                 }
             }
             else if (events_[i].events & EPOLLIN){

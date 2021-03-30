@@ -99,6 +99,7 @@ void thread_pool< T >::__Run(){
         if(!request){
             continue;
         }
+        // connectionRAII mysqlcon(&request->mysql, m_connPool);
         request->Process();
     }
 }

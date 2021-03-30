@@ -7,9 +7,10 @@
 
 #include "http_conn.h"
 
+locker m_lock;
 map<string, string>users;
 void http_conn::InitMySQLResult(connection_pool *connPool){
-    MYSQL *mysql = NULL;
+    mysql = NULL;
     connectionRAII mysqlcon(&mysql, connPool);
 
     //在user表中检索username，passwd数据，浏览器端输入
@@ -188,6 +189,10 @@ http_conn::HTTP_CODE http_conn::__ParseRequestLine(char *text){
         if (strcasecmp(method, "GET") == 0){
             m_method_ = GET;
         }
+        else if(strcasecmp(method, "POST") == 0){
+            m_method_ = POST;
+            cgi = 1;
+        }
         //more function
         else{
             return BAD_REQUEST;
@@ -254,6 +259,7 @@ http_conn::HTTP_CODE http_conn::__ParseHeaders(char* text){
 http_conn::HTTP_CODE http_conn::__ParseContent(char* text){
     if (m_read_idx_ >= (m_content_length_ + m_checked_idx_)){
         text[m_content_length_] = '\0';
+        m_string_ = text;
         return GET_REQUEST;
     }
     return NO_REQUEST;
@@ -308,8 +314,85 @@ http_conn::HTTP_CODE http_conn::__DoRequest(){
     
     printf("%s\n", m_url_);
     const char *p = strrchr(m_url_, '/');
-    printf("%s\n", p);
-    strncpy(m_real_file_ + len, m_url_, FILENAME_LEN - len - 1);
+
+    if (cgi == 1 && (*(p+1) == '2' || *(p+1) == '3')){
+        char flag = m_url_[1];
+
+        char *m_url_real = (char *)malloc(sizeof(char) * 200);
+        strcpy(m_url_real, "/");
+        strcat(m_url_real, m_url_+2);
+        strncpy(m_real_file_ + len, m_url_real, FILENAME_LEN - len - 1);
+        free(m_url_real);
+
+        //将用户名和密码提取出来
+        //user=123&passwd=123
+        char name[100], password[100];
+        int i;
+        for (i = 5; m_string_[i] != '&'; ++i)
+            name[i - 5] = m_string_[i];
+        name[i - 5] = '\0';
+
+        int j = 0;
+        for (i = i + 10; m_string_[i] != '\0'; ++i, ++j)
+            password[j] = m_string_[i];
+        password[j] = '\0';
+        
+        if (*(p + 1) == '3')
+        {
+            //如果是注册，先检测数据库中是否有重名的
+            //没有重名的，进行增加数据
+            char *sql_insert = (char *)malloc(sizeof(char) * 200);
+            strcpy(sql_insert, "INSERT INTO user(username, passwd) VALUES(");
+            strcat(sql_insert, "'");
+            strcat(sql_insert, name);
+            strcat(sql_insert, "', '");
+            strcat(sql_insert, password);
+            strcat(sql_insert, "')");
+            printf("things to insert : %s\n", sql_insert);
+            if (users.find(name) == users.end())
+            {
+                m_lock.Lock();
+                int res = mysql_query(mysql, sql_insert);
+                users.insert(pair<string, string>(name, password));
+                m_lock.Unlock();
+
+                if (!res)
+                    strcpy(m_url_, "/log.html");
+                else
+                    strcpy(m_url_, "/registerError.html");
+            }
+            else
+                strcpy(m_url_, "/registerError.html");
+        }
+        //如果是登录，直接判断
+        //若浏览器端输入的用户名和密码在表中可以查找到，返回1，否则返回0
+        else if (*(p + 1) == '2')
+        {
+            if (users.find(name) != users.end() && users[name] == password)
+                strcpy(m_url_, "/welcome.html");
+            else
+                strcpy(m_url_, "/logError.html");
+        }
+    }
+    
+    if (*(p+1) == '0'){
+        char *m_url_real = (char *)malloc(sizeof(char)*200);
+        strcpy(m_url_real, "/register.html");
+        strncpy(m_real_file_ + len, m_url_real, strlen(m_url_real));
+
+        free(m_url_real);
+    }
+
+    else if(*(p+1) == '1'){
+        char *m_url_real = (char *)malloc(sizeof(char) * 200);
+        strcpy(m_url_real, "/log.html");
+        strncpy(m_real_file_ + len, m_url_real, strlen(m_url_real));
+
+        free(m_url_real);
+    }
+    else{
+        strncpy(m_real_file_ + len, m_url_, FILENAME_LEN - len - 1);
+    }
     if (stat(m_real_file_, &m_file_stat_) < 0){
         perror("\n\nfile_error:");
         return NO_RESOURCE;

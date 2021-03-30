@@ -36,7 +36,6 @@ void connection_pool::Init(string url, string User, string PassWord, string DBNa
             LOG_ERROR("MySQL Error");
             exit(1);
         }
-        printf("%s  %s  %s  %s\n", url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str());
         con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, nullptr, 0);
 
         if (con == nullptr){
