@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-30 13:09:49 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 13:27:08
+ * @Last Modified time: 2021-03-30 19:39:13
  */
 
 #include "log.h"
@@ -28,7 +28,7 @@ bool Log::Init(const char* file_name, int close_log, int log_buf_size, int split
         pthread_create(&tid, nullptr, FlushLogThread, nullptr);
     }
 
-    m_close_log_ = close_log;
+    m_close_log = close_log;
     m_log_buf_size_ = log_buf_size;
     m_buf_ = new char[m_log_buf_size_];
     memset(m_buf_, '\0', m_log_buf_size_);

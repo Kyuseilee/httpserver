@@ -2,15 +2,34 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:32 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-29 21:34:44
+ * @Last Modified time: 2021-03-30 21:01:33
  */
 
 #include "server.h"
 #include "assert.h"
 
 
+void Server::LogWrite(){
+    if (0 == m_close_log){
+        if (1 == m_log_write){
+            Log::GetInstance()->Init("./ServerLog", m_close_log, 2000, 800000, 800);
+        }
+        else {
+            Log::GetInstance()->Init("./ServerLog", m_close_log, 2000, 800000, 0);
+        }
+    }
+}
+
+void Server::SqlPool(){
+    m_connPool = connection_pool::GetInstance();
+    m_connPool->Init("127.0.0.1", m_user, m_passWord, m_databaseName, 3306, m_sql_num, m_close_log);
+
+    //初始化数据库读取表
+    users->InitMySQLResult(m_connPool);
+}
+
 void Server::Timer(int conn_fd, struct sockaddr_in client_address){
-    users[conn_fd].Init(conn_fd, client_address);
+    users[conn_fd].Init(conn_fd, client_address, m_close_log, m_user, m_passWord, m_databaseName);
 
     users_timer[conn_fd].address_ = client_address;
     users_timer[conn_fd].sockfd_  = conn_fd;
@@ -38,15 +57,21 @@ Server::Server(){
 Server::~Server(){
 
 }
-
-void Server::Init(){
-    port_ = 9006;
+void Server::Init(int port , string user, string passWord, string databaseName, int threadnum, int log_write ,int sql_num,int close_log){
+    port_ = port;
+    m_user = user;
+    m_passWord = passWord;
+    m_databaseName = databaseName;
+    m_sql_num = sql_num;
+    m_log_write = log_write;
+    m_thread_num = threadnum;
+    m_close_log = close_log;
     InitThreadPool();
     //init paramater....
 }
 
 void Server::InitThreadPool(){
-    m_pool_ = new thread_pool<http_conn>;
+    m_pool_ = new thread_pool<http_conn>(m_connPool, m_thread_num);
 }
 
 bool Server::HandleConnect(){
@@ -54,12 +79,12 @@ bool Server::HandleConnect(){
     socklen_t client_length = sizeof(client_address);
     int connfd = accept(listen_fd_, (struct sockaddr*)&client_address, &client_length);
     if (connfd < 0){
-        //write log info
+        LOG_ERROR("%s:errno is:%d", "accept error", errno);
         return false;
     }
     if (http_conn::m_user_count_ >= MAX_FD){
         utils.ShowError(connfd, "Internal server busy");
-        //Write to Log;
+        LOG_ERROR("%s", "Internal server busy");
         return false;
     }
     printf("Got connection from %d\n", connfd);

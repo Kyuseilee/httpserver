@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-30 12:02:16 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 12:19:38
+ * @Last Modified time: 2021-03-30 19:34:10
  */
 #ifndef BLOCK_QUEUE_H
 #define BLOCK_QUEUE_H
@@ -112,7 +112,7 @@ public:
     bool Push(const T &item){
         m_mutex_.Lock();
 
-        if (m_size >= m_max_size_){
+        if (m_size_ >= m_max_size_){
             m_cond_.Broadcast();
             m_mutex_.Unlock();
             return false;
@@ -167,9 +167,9 @@ public:
         }
 
         m_front_ = (m_front_ + 1) % m_max_size_;
-        item = m_array[m_front_];
-        m_size--;
-        m_mutex.unlock();
+        item = m_array_[m_front_];
+        m_size_--;
+        m_mutex_.Unlock();
         return true;
     }
 private:

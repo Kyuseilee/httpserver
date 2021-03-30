@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:59 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-23 20:42:55
+ * @Last Modified time: 2021-03-30 19:20:29
  */
 #ifndef HTTP_CONN_H
 #define HTTP_CONN_H
@@ -25,7 +25,12 @@
 #include<sys/mman.h>
 #include<stdarg.h>
 #include<errno.h>
+#include<map>
+
 #include "../locker/locker.h"
+#include "../timer/timer.h"
+#include "../Sql/sql_connection_pool.h"
+#include "../log/log.h"
 
 
 class http_conn{
@@ -44,11 +49,15 @@ public:
     ~http_conn(){}
 
 public:
-    void Init( int sockfd, const sockaddr_in& addr);
+    void Init(int sockfd, const sockaddr_in &addr, int, string user, string passwd, string sqlname);
     void CloseConn( bool real_close = true);
     void Process();
     bool Read();
     bool Write();
+    void InitMySQLResult(connection_pool *connPool);
+    int timer_flag;
+    int improv;
+
 
 private:
     void __Init();
@@ -75,21 +84,19 @@ private:
 public:
     static int m_epoll_fd_;
     static int m_user_count_;
+    MYSQL *mysql;
+    int m_state;
 
 private:
     int m_sockfd_;
     sockaddr_in m_address_;
-    
-    
-    int bytes_have_send ;
-    int bytes_to_send;
     char m_read_buf_[READ_BUFFER_SIZE];
     int m_read_idx_;
     int m_checked_idx_;
     int m_start_line_;
     char m_write_buf_[WRITE_BUFFER_SIZE];
     int m_write_idx_;
-
+    
     CHECK_STATE m_check_state_;
     METHOD m_method_;
 
@@ -104,6 +111,17 @@ private:
     struct stat m_file_stat_;
     struct iovec m_iv_[2];
     int m_iv_count_;
+
+    int cgi;
+    char *m_string_;
+    int bytes_have_send ;
+    int bytes_to_send;
+    char *doc_root;
+
+    int m_close_log;
+    char sql_user[100];
+    char sql_passwd[100];
+    char sql_name[100];
 };
 
 #endif // HTTP_CONN_H

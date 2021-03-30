@@ -2,11 +2,39 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:52:02 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-29 21:38:29
+ * @Last Modified time: 2021-03-30 21:09:29
  */
 
 #include "http_conn.h"
 
+map<string, string>users;
+void http_conn::InitMySQLResult(connection_pool *connPool){
+    MYSQL *mysql = NULL;
+    connectionRAII mysqlcon(&mysql, connPool);
+
+    //在user表中检索username，passwd数据，浏览器端输入
+    if (mysql_query(mysql, "SELECT username,passwd FROM user"))
+    {
+        LOG_ERROR("SELECT error:%s\n", mysql_error(mysql));
+    }
+
+    //从表中检索完整的结果集
+    MYSQL_RES *result = mysql_store_result(mysql);
+
+    //返回结果集中的列数
+    int num_fields = mysql_num_fields(result);
+
+    //返回所有字段结构的数组
+    MYSQL_FIELD *fields = mysql_fetch_fields(result);
+
+    //从结果集中获取下一行，将对应的用户名和密码，存入map中
+    while (MYSQL_ROW row = mysql_fetch_row(result))
+    {
+        string temp1(row[0]);
+        string temp2(row[1]);
+        users[temp1] = temp2;
+    }
+}
 
 int SetNonBlocking( int fd){
     int old_option = fcntl(fd, F_GETFL);
@@ -58,23 +86,30 @@ void http_conn::CloseConn(bool real_close){
         m_user_count_--;
     }
 }
-
-void http_conn::Init(int sockfd, const sockaddr_in& addr){
+void http_conn::Init(int sockfd, const sockaddr_in &addr, int close_log, string user, string passwd, string sqlname){
     m_sockfd_ = sockfd;
     m_address_ = addr;
     AddFd(m_epoll_fd_, m_sockfd_, true);
     m_user_count_++;
-    int reuse = 1;
-    setsockopt(m_sockfd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    m_close_log = close_log;
+    strcpy(sql_user, user.c_str());
+    strcpy(sql_passwd, passwd.c_str());
+    strcpy(sql_name, sqlname.c_str());
+
+    // int reuse = 1;
+    // setsockopt(m_sockfd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     __Init();
 }
 
 void http_conn::__Init(){
+    mysql = nullptr;
+    bytes_to_send = 0;
+    bytes_have_send = 0;
+    
     m_check_state_ = CHECK_STATE_REQUESTLINE;
     m_linger_ = false;
     
-    bytes_to_send = 0;
-    bytes_have_send = 0;
     m_method_ = GET;
     m_url_ = 0;
     m_version_ = 0;
@@ -84,6 +119,11 @@ void http_conn::__Init(){
     m_checked_idx_ = 0;
     m_read_idx_ = 0;
     m_write_idx_ = 0;
+
+    cgi = 0;
+    m_state = 0;
+    timer_flag = 0;
+    improv = 0;
 
     memset(m_read_buf_, '\0', READ_BUFFER_SIZE);
     memset(m_write_buf_, '\0', WRITE_BUFFER_SIZE);
@@ -206,7 +246,7 @@ http_conn::HTTP_CODE http_conn::__ParseHeaders(char* text){
         m_host_ = text;
     }
     else{
-        printf("oops! unknown header %s\n", text);
+        LOG_INFO("oop!unknow header: %s", text);
     }
     return NO_REQUEST;
 }
@@ -227,7 +267,7 @@ http_conn::HTTP_CODE http_conn::__ProcessRead(){
     while ((( m_check_state_ == CHECK_STATE_CONTENT) && (line_status == LINE_OK)) || (line_status = __ParseLine()) == LINE_OK){
         text = __GetLine();
         m_start_line_ = m_checked_idx_;
-        // printf("got 1 http line: %s\n", text);
+        LOG_INFO("%s", text)
         switch (m_check_state_){
             case CHECK_STATE_REQUESTLINE:{//Init下的初始状态
                 ret = __ParseRequestLine(text);
@@ -262,11 +302,14 @@ http_conn::HTTP_CODE http_conn::__ProcessRead(){
 }
 
 http_conn::HTTP_CODE http_conn::__DoRequest(){
+    doc_root = "root";
     strcpy(m_real_file_, doc_root);
     int len = strlen(doc_root);
-    // printf("\n\n%s\n\n", m_url_);
+    
+    printf("%s\n", m_url_);
+    const char *p = strrchr(m_url_, '/');
+    printf("%s\n", p);
     strncpy(m_real_file_ + len, m_url_, FILENAME_LEN - len - 1);
-    // printf("\n\n%s\n\n", m_real_file_);
     if (stat(m_real_file_, &m_file_stat_) < 0){
         perror("\n\nfile_error:");
         return NO_RESOURCE;
@@ -276,9 +319,6 @@ http_conn::HTTP_CODE http_conn::__DoRequest(){
     }
 
     int fd = open(m_real_file_, O_RDONLY);
-    if(fd){
-        // printf("\n\nfile Open\n\n");
-    }
     m_file_address_ = (char*)mmap(0, m_file_stat_.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     close(fd);
     return FILE_REQUEST;

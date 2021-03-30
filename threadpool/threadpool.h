@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-23 18:44:00 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-23 20:39:24
+ * @Last Modified time: 2021-03-30 19:35:17
  */
 
 #ifndef THREADPOOL_H
@@ -13,11 +13,12 @@
 #include <exception>
 #include <pthread.h>
 #include "../locker/locker.h"
+#include "../Sql/sql_connection_pool.h"
 
 template <typename T>
 class thread_pool{
 public:
-    thread_pool(int thread_number = 8, int max_requests = 10000);
+    thread_pool(connection_pool *connPool, int thread_number = 8, int max_requests = 10000);
     ~thread_pool();
     bool Append(T* request);
 
@@ -32,10 +33,11 @@ private:
     locker m_queuelocker_;
     sem m_queuestat_;
     bool m_stop_;
+    connection_pool *m_connPool;
 };
 
 template<typename T>
-thread_pool<T>::thread_pool(int thread_number, int max_requests) :m_thread_number_(thread_number), m_max_requests_(max_requests), m_stop_(false), m_threads_(nullptr){
+thread_pool<T>::thread_pool(connection_pool *connPool, int thread_number, int max_requests) :m_thread_number_(thread_number), m_max_requests_(max_requests), m_stop_(false), m_threads_(nullptr), m_connPool(connPool){
     if ((thread_number <= 0) || (max_requests <= 0)){
         throw std::exception();
     }

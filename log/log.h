@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-30 12:02:24 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 13:11:29
+ * @Last Modified time: 2021-03-30 19:12:11
  */
 #ifndef LOG_H
 #define LOG_H
@@ -59,12 +59,12 @@ private:
     block_queue<string> *m_log_queue_;
     bool m_is_async_;
     locker m_mutex_;
-    int m_close_log_;
+    int m_close_log;
 };
 
-#define LOG_DEBUG(format, ...) if(0 == m_close_log_) {Log::GetInstance()->WriteLog(0, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
-#define LOG_INFO(format, ...) if(0 == m_close_log_) {Log::GetInstance()->WriteLog(1, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
-#define LOG_WARN(format, ...) if(0 == m_close_log_) {Log::GetInstance()->WriteLog(2, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
-#define LOG_ERROR(format, ...) if(0 == m_close_log_) {Log::GetInstance()->WriteLog(3, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
+#define LOG_DEBUG(format, ...) if(0 == m_close_log) {Log::GetInstance()->WriteLog(0, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
+#define LOG_INFO(format, ...) if(0 == m_close_log) {Log::GetInstance()->WriteLog(1, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
+#define LOG_WARN(format, ...) if(0 == m_close_log) {Log::GetInstance()->WriteLog(2, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
+#define LOG_ERROR(format, ...) if(0 == m_close_log) {Log::GetInstance()->WriteLog(3, format, ##__VA_ARGS__); Log::GetInstance()->Flush();}
 
 #endif // LOG_H

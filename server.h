@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:41 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-29 20:59:25
+ * @Last Modified time: 2021-03-30 20:27:01
  */
 
 #ifndef SERVER_H
@@ -41,8 +41,12 @@ class Server{
 public:
     Server();
     ~Server();
-    void Init();
+    void Init(int port , string user, string passWord, string databaseName,int threadnum, int log_write ,int sql_num, int close_log);
     void InitThreadPool();
+    void SqlPool();
+    void LogWrite();
+
+
     void Listen();
     void Loop();
 
@@ -57,16 +61,28 @@ public:
 
 
 public:
-    Utils utils;
-    int pipe_fd_[2];
-    client_data *users_timer;
-    thread_pool<http_conn>*m_pool_;
-    http_conn* users;
-    int user_count = 0;
-    int listen_fd_, epoll_fd_;
     int port_;
+    char *m_root_;
+    int m_log_write;
+    int m_close_log;
+
+    int pipe_fd_[2];
+    int listen_fd_, epoll_fd_;
+    http_conn* users;
+
+    connection_pool *m_connPool;
+    string m_user;
+    string m_passWord;
+    string m_databaseName;
+    int m_sql_num;
+
+    thread_pool<http_conn>*m_pool_;
+    int m_thread_num;
     epoll_event events_[MAX_EVENT_NUMBER];
 
+    Utils utils;
+    client_data *users_timer;
+    int user_count = 0;
 
 };
 

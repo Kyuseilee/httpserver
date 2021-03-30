@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-23 18:46:21 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-23 20:39:54
+ * @Last Modified time: 2021-03-30 19:36:00
  */
 
 #ifndef LOCKER_H
@@ -16,6 +16,11 @@ class sem{
 public:
     sem(){
         if(sem_init( &m_sem_, 0, 0) != 0){
+            throw std::exception();
+        }
+    }
+    sem(int num){
+        if (sem_init(&m_sem_, 0, num) != 0){
             throw std::exception();
         }
     }
@@ -48,6 +53,9 @@ public:
     bool Unlock(){
         return pthread_mutex_unlock(&m_mutex_) == 0;
     }
+    pthread_mutex_t *get(){
+        return &m_mutex_;
+    }
 private:
     pthread_mutex_t m_mutex_;
 };
@@ -66,15 +74,23 @@ public:
         pthread_mutex_destroy(&m_mutex_);
         pthread_cond_destroy(&m_cond_);
     }
-    bool Wait(){
+    bool Wait(pthread_mutex_t *m_mutex){
         int ret = 0;
         pthread_mutex_lock(&m_mutex_);
         ret = pthread_cond_wait(&m_cond_, &m_mutex_);
         pthread_mutex_unlock(&m_mutex_);
         return ret == 0;
     }
+    bool TimeWait(pthread_mutex_t *m_mutex, struct timespec t){
+        int ret = 0;
+        ret = pthread_cond_timedwait(&m_cond_, m_mutex, &t);
+        return ret == 0;
+    }
     bool Signal(){
         return pthread_cond_signal(&m_cond_) == 0;
+    }
+    bool Broadcast(){
+        return pthread_cond_broadcast(&m_cond_) == 0;
     }
 private:
     pthread_mutex_t m_mutex_;
