@@ -8,10 +8,10 @@ Config::Config(){
     LOGWrite = 0;
 
     //触发组合模式,默认listenfd LT + connfd LT
-    TRIGMode = 0;
+    TRIGMode = 1;
 
     //listenfd触发模式，默认LT
-    LISTENTrigmode = 0;
+    LISTENTrigmode = 1;
 
     //connfd触发模式，默认LT
     CONNTrigmode = 0;
@@ -26,7 +26,7 @@ Config::Config(){
     thread_num = 8;
 
     //关闭日志,默认不关闭
-    close_log = 0;
+    close_log = 1;
 
     //并发模型,默认是proactor
     actor_model = 0;

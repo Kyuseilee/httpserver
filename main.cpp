@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:49 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-31 07:55:36
+ * @Last Modified time: 2021-03-31 12:42:57
  */
 
 #include "config.h"
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){// paramater do not provide for now
     server.SqlPool();
 
     server.InitThreadPool();
-    server.LogWrite();
+    // server.LogWrite();
 
     server.Listen();
     server.Loop();

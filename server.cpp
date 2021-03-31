@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:32 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-31 07:55:17
+ * @Last Modified time: 2021-03-31 12:19:19
  */
 
 #include "server.h"
@@ -55,7 +55,13 @@ Server::Server(){
 }
 
 Server::~Server(){
-
+    close(epoll_fd_);
+    close(listen_fd_);
+    close(pipe_fd_[1]);
+    close(pipe_fd_[0]);
+    delete[] users;
+    delete[] users_timer;
+    delete m_pool_;
 }
 void Server::Init(int port , string user, string passWord, string databaseName, int threadnum, int log_write ,int sql_num,int close_log){
     port_ = port;
@@ -76,28 +82,28 @@ void Server::InitThreadPool(){
 bool Server::HandleConnect(){
     struct sockaddr_in client_address;
     socklen_t client_length = sizeof(client_address);
-    int connfd = accept(listen_fd_, (struct sockaddr*)&client_address, &client_length);
-    if (connfd < 0){
-        LOG_ERROR("%s:errno is:%d", "accept error", errno);
-        return false;
+    while(1){
+        int connfd = accept(listen_fd_, (struct sockaddr*)&client_address, &client_length);
+        if (connfd < 0){
+            LOG_ERROR("%s:errno is:%d", "accept error", errno);
+            return false;
+        }
+        if (http_conn::m_user_count_ >= MAX_FD){
+            utils.ShowError(connfd, "Internal server busy");
+            LOG_ERROR("%s", "Internal server busy");
+            return false;
+        }
+        Timer(connfd, client_address);
     }
-    if (http_conn::m_user_count_ >= MAX_FD){
-        utils.ShowError(connfd, "Internal server busy");
-        LOG_ERROR("%s", "Internal server busy");
-        return false;
-    }
-    Timer(connfd, client_address);
-    return true;
+    return false;
 }
 
 void Server::HandleTimer(util_timer *timer, int fd){
     timer->CbFunc(&users_timer[fd]);
     if (timer){
-        printf("Now %d client exit....\n", fd);
         utils.m_timer_lst_.DelTimer(timer);
     }
-
-    //Write To Log;
+    LOG_INFO("close fd %d", users_timer[fd].sockfd_)
 }
 
 void Server::HandleRead(int fd){
@@ -141,7 +147,6 @@ bool Server::HandleSignal(bool &timeout, bool &stop_server){
         for (int i = 0; i < ret; i++){
             switch (signals[i]){
                 case SIGALRM:{
-                    printf("Now Here is Alarm...\n");
                     timeout = true;
                     break;
                 }
@@ -235,7 +240,6 @@ void Server::Loop(){
 
             else if (events_[i].events & EPOLLOUT){
                 HandleWrite(sockfd);
-
             }
         }
         if (timeout){
@@ -244,10 +248,6 @@ void Server::Loop(){
             timeout = false;
         }
     }
-    close(epoll_fd_);
-    close(listen_fd_);
-    delete []users;
-    delete m_pool_;
 }
 
 

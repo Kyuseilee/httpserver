@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-23 18:46:21 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 19:36:00
+ * @Last Modified time: 2021-03-31 10:05:52
  */
 
 #ifndef LOCKER_H
@@ -63,22 +63,15 @@ private:
 class cond{
 public:
     cond(){
-        if (pthread_mutex_init(&m_mutex_, nullptr) != 0)
+        if (pthread_cond_init(&m_cond_, nullptr) != 0)
             throw std::exception();
-        if (pthread_cond_init(&m_cond_, nullptr) != 0){
-            pthread_mutex_destroy( &m_mutex_);
-            throw std::exception();
-        }
     }
     ~cond(){
-        pthread_mutex_destroy(&m_mutex_);
         pthread_cond_destroy(&m_cond_);
     }
     bool Wait(pthread_mutex_t *m_mutex){
         int ret = 0;
-        pthread_mutex_lock(&m_mutex_);
-        ret = pthread_cond_wait(&m_cond_, &m_mutex_);
-        pthread_mutex_unlock(&m_mutex_);
+        ret = pthread_cond_wait(&m_cond_, m_mutex);
         return ret == 0;
     }
     bool TimeWait(pthread_mutex_t *m_mutex, struct timespec t){
@@ -93,7 +86,6 @@ public:
         return pthread_cond_broadcast(&m_cond_) == 0;
     }
 private:
-    pthread_mutex_t m_mutex_;
     pthread_cond_t m_cond_;
 };
 

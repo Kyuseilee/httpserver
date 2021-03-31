@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-29 19:04:55 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-29 19:55:12
+ * @Last Modified time: 2021-03-31 11:57:04
  */
 
 #include "timer.h"
@@ -29,6 +29,7 @@ void sort_timer_lst::AddTimer(util_timer *timer){
     if (!head_){
         head_ = timer;
         tail_ = timer; 
+        return ;
     }
     if (timer->expire_ < head_->expire_){
         timer->next_ = head_;
@@ -153,13 +154,13 @@ int Utils::SetNonBlocking(int fd){
 void Utils::AddFd(int epoll_fd, int fd, bool one_shot){
     epoll_event event;
     event.data.fd = fd;
-
-
+    
     event.events = EPOLLIN |  EPOLLET | EPOLLRDHUP;
 
     if(one_shot){
         event.events |= EPOLLONESHOT;
     }
+    printf("Now we add %d fd to handle %d client...\n", epoll_fd, fd);
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &event);
     SetNonBlocking(fd);
 }

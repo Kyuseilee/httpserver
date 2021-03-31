@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-23 18:44:00 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-31 07:42:05
+ * @Last Modified time: 2021-03-31 12:30:42
  */
 
 #ifndef THREADPOOL_H
@@ -32,12 +32,11 @@ private:
     std::list<T* > m_workqueue_;
     locker m_queuelocker_;
     sem m_queuestat_;
-    bool m_stop_;
     connection_pool *m_connPool;
 };
 
 template<typename T>
-thread_pool<T>::thread_pool(connection_pool *connPool, int thread_number, int max_requests) :m_thread_number_(thread_number), m_max_requests_(max_requests), m_stop_(false), m_threads_(nullptr), m_connPool(connPool){
+thread_pool<T>::thread_pool(connection_pool *connPool, int thread_number, int max_requests) :m_thread_number_(thread_number), m_max_requests_(max_requests), m_threads_(nullptr), m_connPool(connPool){
     if ((thread_number <= 0) || (max_requests <= 0)){
         throw std::exception();
     }
@@ -46,8 +45,7 @@ thread_pool<T>::thread_pool(connection_pool *connPool, int thread_number, int ma
         throw std::exception();
     }
     for (int i = 0; i < thread_number; i++){
-        printf("create the %dth thread\n", i);
-        if(pthread_create(m_threads_ + i, NULL, __Worker, this) != 0){
+        if(pthread_create(m_threads_ + i, nullptr, __Worker, this) != 0){
             delete[] m_threads_;
             throw std::exception();
         }
@@ -61,7 +59,7 @@ thread_pool<T>::thread_pool(connection_pool *connPool, int thread_number, int ma
 template <typename T>
 thread_pool< T >::~thread_pool(){
     delete[] m_threads_;
-    m_stop_ = true;
+    // m_stop_ = true;
 }
 
 template <typename T>

@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:52:02 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-31 07:39:08
+ * @Last Modified time: 2021-03-31 12:23:26
  */
 
 #include "http_conn.h"
@@ -125,7 +125,6 @@ void http_conn::__Init(){
     cgi = 0;
     m_state = 0;
     timer_flag = 0;
-    improv = 0;
 
     memset(m_read_buf_, '\0', READ_BUFFER_SIZE);
     memset(m_write_buf_, '\0', WRITE_BUFFER_SIZE);
@@ -205,15 +204,15 @@ http_conn::HTTP_CODE http_conn::__ParseRequestLine(char *text){
             return BAD_REQUEST;;
         *m_version_++ = '\0';
         m_version_ += strspn(m_version_, " \t");
-        if (strcasecmp(m_version_, "HTTP/1.1") != 0)
+        if (strcasecmp(m_version_, "HTTP/1.1") != 0 && strcasecmp(m_version_, "HTTP/1.0") != 0)
             return BAD_REQUEST;
         if (strncasecmp(m_url_, "http://", 7) == 0){
             m_url_ += 7;
-            m_url_ = strchr( m_url_, '/');
+            m_url_ = strchr(m_url_, '/');
         }
         if (strncasecmp(m_url_, "https://", 8) == 0){
             m_url_ += 8;
-            m_url_ = strchr( m_url_, '/');
+            m_url_ = strchr(m_url_, '/');
         }
         if (!m_url_ || m_url_[0] != '/'){
             return BAD_REQUEST;
@@ -246,7 +245,7 @@ http_conn::HTTP_CODE http_conn::__ParseHeaders(char* text){
         text += strspn(text, " \t");
         m_content_length_ = atol(text);
     }
-    else if (strncasecmp( text, "Host:", 5) == 0){
+    else if (strncasecmp(text, "Host:", 5) == 0){
         text += 5;
         text += strspn(text, " \t");
         m_host_ = text;
@@ -271,7 +270,7 @@ http_conn::HTTP_CODE http_conn::__ProcessRead(){
     HTTP_CODE ret = NO_REQUEST;
     char* text = 0;
 
-    while ((( m_check_state_ == CHECK_STATE_CONTENT) && (line_status == LINE_OK)) || (line_status = __ParseLine()) == LINE_OK){
+    while (( m_check_state_ == CHECK_STATE_CONTENT && line_status == LINE_OK) || ((line_status = __ParseLine()) == LINE_OK)){
         text = __GetLine();
         m_start_line_ = m_checked_idx_;
         LOG_INFO("%s", text)
@@ -313,7 +312,7 @@ http_conn::HTTP_CODE http_conn::__DoRequest(){
     strcpy(m_real_file_, doc_root);
     int len = strlen(doc_root);
     
-    printf("%s\n", m_url_);
+    // printf("%s\n", m_url_);
     const char *p = strrchr(m_url_, '/');
 
     if (cgi == 1 && (*(p+1) == '2' || *(p+1) == '3')){
@@ -395,7 +394,7 @@ http_conn::HTTP_CODE http_conn::__DoRequest(){
         strncpy(m_real_file_ + len, m_url_, FILENAME_LEN - len - 1);
     }
     if (stat(m_real_file_, &m_file_stat_) < 0){
-        perror("\n\nfile_error:");
+        perror("file_error:");
         return NO_RESOURCE;
     }
     if (S_ISDIR(m_file_stat_.st_mode)){
@@ -426,8 +425,8 @@ bool http_conn::Write(){
         temp = writev(m_sockfd_, m_iv_, m_iv_count_);
         if (temp <= -1){
             if (errno == EAGAIN){
-                perror("We cannot : ");
                 ModFd(m_epoll_fd_, m_sockfd_, EPOLLOUT);
+                return true;
             }
             __Unmap();
             return false;
@@ -492,6 +491,7 @@ bool http_conn::__AddResponse(const char* format, ...){
 
     m_write_idx_ += len;
     va_end(arg_list);
+    LOG_INFO("request:%s", m_write_buf_);
     return true;
 }
 
@@ -556,7 +556,7 @@ bool http_conn::__ProcessWrite(HTTP_CODE ret){
             break;
         }
         case FILE_REQUEST:{
-            printf("Get resource!\n\n");
+            // printf("Get resource!\n\n");
             __AddStatusLine(200, ok_200_title);
             if (m_file_stat_.st_size != 0){
                 __AddHeaders(m_file_stat_.st_size);
@@ -588,7 +588,6 @@ bool http_conn::__ProcessWrite(HTTP_CODE ret){
 void http_conn::Process(){
     HTTP_CODE read_ret = __ProcessRead();
     if (read_ret == NO_REQUEST){
-        printf("No current request\n");
         ModFd(m_epoll_fd_, m_sockfd_, EPOLLIN);
         return;
     }

@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:59 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 19:20:29
+ * @Last Modified time: 2021-03-31 09:51:21
  */
 #ifndef HTTP_CONN_H
 #define HTTP_CONN_H
@@ -57,8 +57,6 @@ public:
     bool Write();
     void InitMySQLResult(connection_pool *connPool);
     int timer_flag;
-    int improv;
-
 
 private:
     void __Init();
