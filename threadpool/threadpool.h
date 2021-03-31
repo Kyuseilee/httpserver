@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-23 18:44:00 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 19:35:17
+ * @Last Modified time: 2021-03-31 07:42:05
  */
 
 #ifndef THREADPOOL_H
@@ -99,7 +99,7 @@ void thread_pool< T >::__Run(){
         if(!request){
             continue;
         }
-        // connectionRAII mysqlcon(&request->mysql, m_connPool);
+        connectionRAII mysqlcon(&request->mysql, m_connPool);
         request->Process();
     }
 }

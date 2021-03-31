@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:49 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 20:27:15
+ * @Last Modified time: 2021-03-31 07:55:36
  */
 
 #include "config.h"
@@ -22,9 +22,10 @@ int main(int argc, char *argv[]){// paramater do not provide for now
     Server server;
 
     server.Init(config.PORT, user, passwd, databasename, config.thread_num,config.LOGWrite, config.sql_num,config.close_log);
-
-    server.LogWrite();
     server.SqlPool();
+
+    server.InitThreadPool();
+    server.LogWrite();
 
     server.Listen();
     server.Loop();

@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:52:02 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 21:09:29
+ * @Last Modified time: 2021-03-31 07:39:08
  */
 
 #include "http_conn.h"
@@ -11,6 +11,7 @@ locker m_lock;
 map<string, string>users;
 void http_conn::InitMySQLResult(connection_pool *connPool){
     mysql = NULL;
+    
     connectionRAII mysqlcon(&mysql, connPool);
 
     //在user表中检索username，passwd数据，浏览器端输入
@@ -352,7 +353,7 @@ http_conn::HTTP_CODE http_conn::__DoRequest(){
             if (users.find(name) == users.end())
             {
                 m_lock.Lock();
-                int res = mysql_query(mysql, sql_insert);
+                int res = mysql_real_query(mysql, sql_insert, strlen(sql_insert));
                 users.insert(pair<string, string>(name, password));
                 m_lock.Unlock();
 

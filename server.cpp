@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-03-22 19:51:32 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-30 21:01:33
+ * @Last Modified time: 2021-03-31 07:55:17
  */
 
 #include "server.h"
@@ -66,7 +66,6 @@ void Server::Init(int port , string user, string passWord, string databaseName, 
     m_log_write = log_write;
     m_thread_num = threadnum;
     m_close_log = close_log;
-    InitThreadPool();
     //init paramater....
 }
 
