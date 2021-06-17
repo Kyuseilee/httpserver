@@ -1,32 +1,85 @@
 /*
  * @Author: rosonlee 
- * @Date: 2021-03-22 19:51:49 
+ * @Date: 2021-06-17 21:46:17 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-03-31 12:42:57
+ * @Last Modified time: 2021-06-17 22:56:22
  */
 
-#include "config.h"
-#include <exception>
+#include<sys/types.h>
+#include<signal.h>
+#include<errno.h>
+#include<arpa/inet.h>
+#include<unistd.h>
+#include<sys/socket.h>
+#include<ctype.h>
+#include<sys/wait.h>
+#include<fcntl.h>
+#include<sys/epoll.h>
+#include<poll.h>
 #include <assert.h>
+#include <memory>
+#include <string.h>
 
 
-int main(int argc, char *argv[]){// paramater do not provide for now 
+#define BUFSIZ 1024
 
-    string user = "root";
-    string passwd = "123456";
-    string databasename = "mydb";
+#include <iostream>
 
-    Config config;
-    config.ParseArg(argc, argv);
+
+using namespace std;
+
+
+
+int main(){
     
-    Server server;
+    int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(listen >= 0);
 
-    server.Init(config.PORT, user, passwd, databasename, config.thread_num,config.LOGWrite, config.sql_num,config.close_log);
-    server.SqlPool();
+    struct sockaddr_in address;
+    bzero(&address, sizeof(address));
 
-    server.InitThreadPool();
-    // server.LogWrite();
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_ANY);
+    address.sin_port = htons(9006);
 
-    server.Listen();
-    server.Loop();
+    int flag = 1;
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+    
+    int ret = 0;
+    ret = bind(listen_fd, (struct sockaddr*)&address, sizeof(address));
+    assert(ret >= 0);
+
+    ret = listen(listen_fd, 5);
+    assert(ret >= 0);
+
+    int client_fd;
+    struct sockaddr_in client_address;
+    char buff[BUFSIZ];
+    socklen_t len = sizeof(struct sockaddr);
+
+    while(1){
+        int state;
+        client_fd = accept(listen_fd, (struct sockaddr*)&client_address, &len);
+
+        assert(client_fd >= 0);
+
+        printf("Got Connection from ip = %s, port = %d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+
+        state = recv(client_fd, buff, sizeof(buff), 0);
+        assert(state >= 0);
+        cout << "\n";
+
+        for (int i = 0; i < BUFSIZ && buff[i] != '\0'; ++i){
+            printf("%c", buff[i]);
+        }
+        cout << "\n";
+        state = write(client_fd, "Hello, client, you are welcome!\r\n", 32);
+        assert(state >= 0);
+        printf("Write ok!\n");
+        close(client_fd);
+    }
+
+
+
+
 }
