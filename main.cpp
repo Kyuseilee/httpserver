@@ -5,19 +5,6 @@
  * @Last Modified time: 2021-06-17 22:56:22
  */
 
-#include<sys/types.h>
-#include<signal.h>
-#include<errno.h>
-#include<arpa/inet.h>
-#include<unistd.h>
-#include<sys/socket.h>
-#include<ctype.h>
-#include<sys/wait.h>
-#include<fcntl.h>
-#include<sys/epoll.h>
-#include<poll.h>
-#include <assert.h>
-#include <memory>
 #include <string.h>
 
 
@@ -78,8 +65,4 @@ int main(){
         printf("Write ok!\n");
         close(client_fd);
     }
-
-
-
-
 }
