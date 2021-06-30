@@ -1,3 +1,7 @@
 {
+    "C_Cpp.errorSquiggles": "Enabled",
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "eslint.lintTask.enable": true,
+    "eslint.format.enable": true,
     "python.pythonPath": "/home/admin/anaconda3/bin/python"
 }
