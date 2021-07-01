@@ -17,6 +17,7 @@
 #include "../config.h"
 #include "epoller.h"
 #include "../threadpool.h"
+#include "../httpparse/http_conn.h"
 
 const int BUFSIZE = 1024;
 class Server{
@@ -24,21 +25,25 @@ public:
     Server(int port, int timeoutMs, bool openLinger);
     ~Server();
 
-public:
     void Loop();
-
 
 private:
     bool __InitSocket();
-    void __HandleRead();
-    void __HandleWrite();
-    void __HandleConnect();
+
+    void __AddClient(int fd, sockaddr_in addr);
     void __HandleListen();
 
-    void __CloseConn();
+    void __HandleRead(HttpConn* fd);
+    void __HandleWrite(HttpConn* fd);
+    void __HandleClose(HttpConn* fd);
 
+    void __OnRead(HttpConn* client);
+    void __OnWrite(HttpConn* client);
+    void __OnProcess(HttpConn* client);
 
-    void __SetNonBlock(int fd);
+private:
+    static int __SetNonBlock(int fd);
+    static const int MAX_FD = 65536;
 
 private:
     int port_;
@@ -56,6 +61,8 @@ private:
     int epoll_fd_;
 
     std::unique_ptr<Epoller>epoller_;
+    std::unique_ptr<ThreadPool> threadpool_;
+    std::unordered_map<int, HttpConn*>user_;
 
 };
 

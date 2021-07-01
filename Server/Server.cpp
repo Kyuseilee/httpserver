@@ -6,15 +6,20 @@
  */
 
 
+//TODO 
+/*
+    & 剩下OnRead和OnWrite和OnProcess
+*/
+
 #include "Server.h"
 
 using namespace std;
 
 Server::Server(
-        int port, int timeoutMs, bool openLinger) : 
+        int port, int timeoutMs, bool openLinger, int threadNum):
         port_(port), timeoutMs_(timeoutMs), isClosed_(false),
-        openLinger_(openLinger), listen_event_(EPOLLRDHUP),conn_event_(EPOLLONESHOT | EPOLLRDHUP) {
-
+        openLinger_(openLinger), listen_event_(EPOLLRDHUP),conn_event_(EPOLLONESHOT | EPOLLRDHUP), threadpool_(new ThreadPool(threadNum), epoller_(new Epoller())) 
+{
         if (!__InitSocket()) {isClosed_ = true;}
 
 }
@@ -87,25 +92,47 @@ bool Server::__InitSocket(){
 
 }
 
-void Server::__SetNonBlock(int fd){
+void Server::__AddClient(int fd, sockaddr_in addr){
     assert(fd > 0);
-    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK);
+    user_[fd].init(fd, addr);
+    if (timeoutMs_ > 0){
+        //TODO TImer
+    }
+    epoller_->AddFd(fd, EPOLLIN | conn_event_);
+    __SetNonBlock(fd);
+    //TODO LOG 
 }
-
 void Server::__HandleListen(){
-
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    do {
+        int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
+        if (fd <= 0) return ;
+        else if (HttpConn::userCount >= MAX_FD){
+            //TODO LOGERROR
+            return ;
+        }
+        __AddClient(fd, addr);
+    } while (listen_event_ & EPOLLET);
 }
 
-void Server::__HandleConnect(){
-
+void Server::__HandleClose(HttpConn* client){
+    assert(client);
+    //TODO LOG
+    epoller_->DelFd(client->GetFd());
+    client->Close();
 }
 
-void Server::__HandleRead(){
-
+void Server::__HandleRead(HttpConn* client){
+    assert(client);
+    //TODO Timer
+    threadpool_->AddTask(std::bind(&Server::__OnRead, this, client));
 }
 
 void Server::__HandleWrite(){
-
+    assert(client);
+    //TODO Timer
+    threadpool_->AddTask(std::bind(&Server::__OnWrite, this, client));
 }
 
 void Server::__CloseConn(HttpConn* client){
@@ -130,24 +157,28 @@ void Server::Loop(){
             int socket_fd = epoller_->GetEventFd(i);
             uint32_t events = epoller_->GetEvents(i);
             if (socket_fd == listen_fd_){
-                HandleListen(events_[i].fd)
+                __HandleListen(events_[i].fd)
             }
             else if (events_ & (EPOLLHUP | EPOLLRDHUP | EPOLLERR)){
-                //TODO Break Connection
-                //TODO Close fd
-                CloseConn();
+                assert(user_[socket_fd] > 0);
+                __HandleClose(&user_[socket_fd]);
             }
             else if (events_ & EPOLLIN){
-                //TODO read events
-                HandleRead();
+                assert(user_.count(socket_fd) > 0);
+                __HandleRead(&user_[socket_fd]);
             }
             else if (events_ & EPOLLOUT){
-                //TODO write events
-                HandleWrite();
+                assert(user_.count(socket_fd) > 0);
+                __HandleWrite(&user_[socket_fd]);
             }
             else{
                 //TODO Log
             }
         }
     }
+}
+
+int Server::__SetNonBlock(int fd){
+    assert(fd > 0);
+    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK);
 }
