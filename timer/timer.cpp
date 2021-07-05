@@ -10,7 +10,7 @@
 void HeapTimer::Adjust(int id, int newExpires){
     assert(!heap_.empty() && ref_.count(id) > 0);
     heap_[ref_[id]].expires = Clock::now() + MS(newExpires);
-    __ShiftDown(ref_[id]);
+    __ShiftDown(ref_[id], heap_.size());
 }
 
 void HeapTimer::Add(int id, int timeOut, const TimeoutCallBack& cb){
