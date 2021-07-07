@@ -18,7 +18,8 @@ using namespace std;
 Server::Server(
         int port, int timeoutMs, bool openLinger, int threadNum):
         port_(port), timeoutMs_(timeoutMs), isClosed_(false),
-        openLinger_(openLinger), listen_event_(EPOLLRDHUP),conn_event_(EPOLLONESHOT | EPOLLRDHUP), threadpool_(new ThreadPool(threadNum), epoller_(new Epoller())) 
+        openLinger_(openLinger), listen_event_(EPOLLRDHUP),conn_event_(EPOLLONESHOT | EPOLLRDHUP),
+        threadpool_(new ThreadPool(threadNum), epoller_(new Epoller()), timer_(new HeapTimer())) 
 {
         if (!__InitSocket()) {isClosed_ = true;}
 
@@ -96,7 +97,7 @@ void Server::__AddClient(int fd, sockaddr_in addr){
     assert(fd > 0);
     user_[fd].init(fd, addr);
     if (timeoutMs_ > 0){
-        //TODO TImer
+        timer_->Add(fd, timeoutMs_, std::bind(&Server::__CloseConn, this, &user_[fd]));
     }
     epoller_->AddFd(fd, EPOLLIN | conn_event_);
     __SetNonBlock(fd);
@@ -125,21 +126,25 @@ void Server::__HandleClose(HttpConn* client){
 
 void Server::__HandleRead(HttpConn* client){
     assert(client);
-    //TODO Timer
+    __ExtentTime(client);
     threadpool_->AddTask(std::bind(&Server::__OnRead, this, client));
 }
 
-void Server::__HandleWrite(){
+void Server::__HandleWrite(HttpConn* client){
     assert(client);
-    //TODO Timer
+    __ExtentTime(client);
     threadpool_->AddTask(std::bind(&Server::__OnWrite, this, client));
 }
 
+void Server::__ExtentTime(Httpconn* client){
+    assert(client);
+    if (timeoutMs_ > 0) {timer_->Adjust(client->GetFd(), timeoutMs_);}
+}
 void Server::__CloseConn(HttpConn* client){
     assert(client);
     //TODO Log
-    //TODO User close;
     epoller_->DelFd(client->GetFd());
+    client->Close();
 }
 
 void Server::Loop(){
@@ -148,7 +153,9 @@ void Server::Loop(){
         //TODO LOG
     }
     while (!isClosed_){
-        //TODO Timer
+        if (timeoutMs_ > 0){
+            timeoutMs_ = timer_->GetNextTick();
+        }
         int number = epoller_->Wait(timeMs)
         if (number < 0 && errno != EINTR){
             //LOG

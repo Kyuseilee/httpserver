@@ -17,6 +17,7 @@
 #include "../config.h"
 #include "epoller.h"
 #include "../threadpool.h"
+#include "../timer/timer.h"
 #include "../httpparse/http_conn.h"
 
 const int BUFSIZE = 1024;
@@ -36,6 +37,8 @@ private:
     void __HandleRead(HttpConn* fd);
     void __HandleWrite(HttpConn* fd);
     void __HandleClose(HttpConn* fd);
+
+    void __ExtentTime(Httpconn* client);
 
     void __OnRead(HttpConn* client);
     void __OnWrite(HttpConn* client);
@@ -58,8 +61,8 @@ private:
     socklen_t listen_len_;
     
     int listen_fd_;
-    int epoll_fd_;
 
+    std::unique_ptr<HeapTimer>timer_;
     std::unique_ptr<Epoller>epoller_;
     std::unique_ptr<ThreadPool> threadpool_;
     std::unordered_map<int, HttpConn*>user_;
