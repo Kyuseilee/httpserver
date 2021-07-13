@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-06-28 19:23:07 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-07-07 20:05:42
+ * @Last Modified time: 2021-07-07 20:24:59
  */
 
 #ifndef LOG_H
@@ -72,7 +72,7 @@ private:
         do {\
             Log* log = Log::Instance();\
             if (log->IsOpen() && log->GetLevel() <= level){\
-                log->Write(level, format, ##__VA__ARGS__);\
+                log->Write(level, format, ##__VA_ARGS__);\
                 log->Flush();\
             }\
         }while(0);

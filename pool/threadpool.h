@@ -15,6 +15,8 @@
         * https://blog.csdn.net/weixin_30827565/article/details/96195835
     ! 构造函数
         * 使用explicit显式声明指定数字的含义，同时将空参的构造使用default指向编译器自行的constructor（如果写了含参而不写无参的constructor编译器会报错）
+    ! std::forward
+        *右值引用类型是独立于值的，一个右值引用参数作为函数的形参，在函数内部再转发该参数的时候它已经变成一个左值，并不是他原来的类型。需要一种方法能够按照参数原来的类型转发到另一个函数，这种转发类型称为完美转发。
 */
 
 #ifndef THREADPOOL_H

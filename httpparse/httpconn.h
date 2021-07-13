@@ -2,7 +2,7 @@
  * @Author: rosonlee 
  * @Date: 2021-06-17 21:47:35 
  * @Last Modified by: rosonlee
- * @Last Modified time: 2021-06-30 22:46:49
+ * @Last Modified time: 2021-07-07 20:14:20
  */
 
 #ifndef HTTP_CONN_H
@@ -17,6 +17,10 @@
 #include "httprequest.h"
 #include "httpresponse.h"
 
+#include "../log/log.h"
+#include "../buffer/buffer.h"
+#include "../pool/sqlconnRAII.h"
+
 class HttpConn
 {
 private:
@@ -25,10 +29,18 @@ private:
 
     bool isClose_;
 
+    int iovCnt_;
+    struct iovec iov_[2];
+
+    Buffer readBuff_;
+    Buffer writeBuff_;
+
+    HttpRequest request_;
+    HttpResponse response_;
+
 public:
     static const char* srcDir;
     static std::atomic<int> userCount;
-    
 
 public:
     HttpConn(/* args */);
@@ -45,6 +57,12 @@ public:
     int GetPort() const;
     const char* GetIP() const;
     sockaddr_in GetAddr() const;
+
+    bool Process();
+
+    int ToWriteBytes(){
+
+    }
 
 
 

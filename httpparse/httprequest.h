@@ -15,6 +15,11 @@
 #include <errno.h>
 #include <mysql/mysql.h>
 
+#include "../buffer/buffer.h"
+#include "../log/log.h"
+#include "../pool/sqlconnpool.h"
+#include "../pool/sqlconnRAII.h"
+
 class HttpRequest
 {
 public:
@@ -48,8 +53,8 @@ public:
     std::string Method()const;
     std::string Version() const;
 
-    //TODO ????
-    // std::string GetPost()
+    std::string GetPost(const std::string& key) const;
+    std::string GetPos(const char* key) const ;
 
     bool IsKeepAlive() const;
 
@@ -64,10 +69,13 @@ private:
     void __ParseFromUrlencoded(); 
 
 private:
+    static bool UserVerify(const std::string& name, const std::string& pwd, bool isLogin);
+
+private:
     PARSE_STATE state_;
     std::string method_, path_, version_, body_;
     std::unordered_map<std::string, std::string>header_;
-    std::unordered_map<std::string, std::string>pos_;
+    std::unordered_map<std::string, std::string>post_;
 
 private:
     static const std::unordered_set<std::string>DEFAULT_HTML;

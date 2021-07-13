@@ -14,7 +14,7 @@
         & 功能封装函数:往数组中增加Fd(Addfd)、从数组中移除fd(delfd)和修改对应fd的功能（Modfd)、阻塞等待函数（Wait)
         & 成员访问函数:Getfd、 GetEvents
     ! 函数参数：fd:整形， events：Epoll的事件，属于宏定义，unit32_t型
-    ! size_t和unit32_t：size_t用于计数，长度取决于机器，unit32_t定长，都是无符号数
+    数
         
 */
 

@@ -109,9 +109,9 @@ bool BlockQueue<T>::pop(T &item){
     std::unique_lock<std::mutex>locker(mtx_);
     while (empty()){
         condConsumer_.wait(locker);
-        if(isClose_)[
+        if(isClose_){
             isClose_ = false;
-        ]
+        }
     }
     item = que_.front();
     que_.pop();
